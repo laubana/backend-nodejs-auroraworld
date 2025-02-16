@@ -2,7 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-const path = require("path");
+import path from "path";
 
 import corsConfig from "./configs/corsConfig";
 import dbConfig from "./configs/dbConfig";
