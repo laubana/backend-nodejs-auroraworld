@@ -20,6 +20,10 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use("/", express.static(path.join(__dirname, "public")));
+app.use(
+  "/favicon.ico",
+  express.static(path.join(__dirname, "public", "favicon.ico"))
+);
 app.use("/auth", authRoute);
 app.use("/api", categoryRoute);
 app.use("/api", linkRoute);
