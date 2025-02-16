@@ -6,11 +6,11 @@ import { Link } from "../types/Link";
 
 const addLink = async (req: Request, res: Response) => {
   try {
-    const { category, name, url } = req.body;
+    const { categoryId, name, url } = req.body;
     const sessionUserId = req.id;
     const sessionUserEmail = req.email;
 
-    if (!category || !name || !url) {
+    if (!categoryId || !name || !url) {
       res.status(400).json({ message: "Invalid Input" });
 
       return;
@@ -23,7 +23,7 @@ const addLink = async (req: Request, res: Response) => {
     }
 
     const stmt = dbConfig.db.prepare(
-      `INSERT INTO links (id, user_id, created_by, category, name, url) SELECT ?, ?, ?, ?, ?, ? FROM users WHERE id = ?`
+      `INSERT INTO links (id, user_id, created_by, category_id, category_name, name, url) SELECT ?, ?, ?, ?, (SELECT name FROM categories WHERE id = ?), ?, ?`
     );
 
     let linkId;
@@ -36,10 +36,10 @@ const addLink = async (req: Request, res: Response) => {
           linkId,
           sessionUserId,
           sessionUserEmail,
-          category,
+          categoryId,
+          categoryId,
           name,
-          url,
-          sessionUserId
+          url
         );
 
         break;
@@ -76,31 +76,12 @@ const addLink = async (req: Request, res: Response) => {
   }
 };
 
-const getOwnLinks = async (req: Request, res: Response) => {
+const getLinks = async (req: Request, res: Response) => {
   try {
-    const sessionUserId = req.id;
-    const sessionUserEmail = req.email;
+    const mode = req.query.mode;
+    const categoryId = req.query.categoryId;
+    const name = req.query.name;
 
-    if (!sessionUserId || !sessionUserEmail) {
-      res.status(401).json({ message: "Unauthorized" });
-
-      return;
-    }
-
-    const existingLinks = dbConfig.db
-      .prepare(`SELECT * FROM links WHERE user_id = ?`)
-      .all(sessionUserId) as Link[];
-
-    res.status(200).json({ message: "", data: existingLinks });
-  } catch (error) {
-    console.log(error);
-
-    res.status(500).json({ message: "Server Error" });
-  }
-};
-
-const getSharedLinks = async (req: Request, res: Response) => {
-  try {
     const sessionUserId = req.id;
     const sessionUserEmail = req.email;
 
@@ -112,11 +93,20 @@ const getSharedLinks = async (req: Request, res: Response) => {
 
     const existingLinks = dbConfig.db
       .prepare(
-        `SELECT links.* FROM links WHERE id IN (SELECT link_id FROM shares WHERE user_id = ?)`
+        mode === "own"
+          ? `SELECT * FROM links WHERE user_id = ? AND (category_id = ? OR 1 = ?) AND name LIKE ?`
+          : mode === "shared-unwritable"
+          ? `SELECT links.* FROM links WHERE id IN (SELECT link_id FROM shares WHERE user_id = ? AND is_writable = 0) AND (category_id = ? OR 1 = ?) AND name LIKE ?`
+          : `SELECT links.* FROM links WHERE id IN (SELECT link_id FROM shares WHERE user_id = ? AND is_writable = 1) AND (category_id = ? OR 1 = ?) AND name LIKE ?`
       )
-      .all(sessionUserId) as Link[];
+      .all(
+        sessionUserId,
+        categoryId,
+        categoryId === "all" ? 1 : 0,
+        `%${name}%`
+      ) as Link[];
 
-    res.status(201).json({ message: "", data: existingLinks });
+    res.status(200).json({ message: "", data: existingLinks });
   } catch (error) {
     console.log(error);
 
@@ -160,4 +150,60 @@ const removeLink = async (req: Request, res: Response) => {
   }
 };
 
-export default { addLink, getOwnLinks, getSharedLinks, removeLink };
+const updateLink = async (req: Request, res: Response) => {
+  try {
+    const { linkId } = req.params;
+    const { categoryId, name, url } = req.body;
+    const sessionUserId = req.id;
+    const sessionUserEmail = req.email;
+
+    if (!linkId || !categoryId || !name || !url) {
+      res.status(400).json({ message: "Invalid Input" });
+
+      return;
+    }
+
+    if (!sessionUserId || !sessionUserEmail) {
+      res.status(401).json({ message: "Unauthorized" });
+
+      return;
+    }
+
+    const stmt = dbConfig.db.prepare(
+      `UPDATE links SET category_id = ?, category_name = (SELECT name FROM categories WHERE id = ?), name = ?, url = ? WHERE id = ? AND (user_id = ? OR EXISTS (SELECT * FROM shares WHERE link_id = links.id AND user_id = ? AND is_writable = 1))`
+    );
+
+    stmt.run(
+      categoryId,
+      categoryId,
+      name,
+      url,
+      linkId,
+      sessionUserId,
+      sessionUserId
+    );
+
+    const updatedLink = dbConfig.db
+      .prepare(`SELECT * FROM links WHERE id = ?`)
+      .get(linkId) as Link;
+
+    if (updatedLink) {
+      res
+        .status(201)
+        .json({ message: "Link updated successfully.", data: updatedLink });
+    } else {
+      res.status(204).send();
+    }
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+export default {
+  addLink,
+  getLinks,
+  removeLink,
+  updateLink,
+};

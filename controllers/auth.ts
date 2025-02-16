@@ -87,7 +87,7 @@ const signIn = async (req: Request, res: Response) => {
       return;
     }
 
-    const isMatch = bcryptjs.compare(password, existingUser.password);
+    const isMatch = await bcryptjs.compare(password, existingUser.password);
 
     if (!isMatch) {
       res.status(401).json({ message: "Sign-in failed." });
@@ -203,9 +203,10 @@ const signUp = async (req: Request, res: Response) => {
       .prepare(`SELECT * FROM users WHERE id = ?`)
       .get(userId) as User;
 
-    res
-      .status(201)
-      .json({ message: "User created successfully.", data: newUser });
+    res.status(201).json({
+      message: "User created successfully.",
+      data: { ...newUser, password: "" },
+    });
   } catch (error) {
     console.log(error);
 
