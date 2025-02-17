@@ -31,7 +31,7 @@ app.use("/api", shareRoute);
 app.use("/api", userRoute);
 
 if (dbConfig.initiate()) {
-  app.listen(process.env.PORT, () => {
-    console.log(`Server launched at port ${process.env.PORT} 🚀`);
+  app.listen(process.env.PORT || 4000, () => {
+    console.log(`Server launched at port ${process.env.PORT || 4000} 🚀`);
   });
 }
