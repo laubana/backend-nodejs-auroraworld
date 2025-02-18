@@ -23,12 +23,16 @@ const addLink = async (req: Request, res: Response) => {
     }
 
     const stmt = dbConfig.db.prepare(
-      `INSERT INTO links (id, user_id, created_by, category_id, category_name, name, url) SELECT ?, ?, ?, ?, (SELECT name FROM categories WHERE id = ?), ?, ?`
+      `INSERT INTO links (id, user_id, created_by, category_id, category_name, name, url)
+      SELECT ?, ?, ?, ?, (SELECT name FROM categories WHERE id = ?), ?, ?`
     );
 
     let linkId;
 
-    while (true) {
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    while (attempts < maxAttempts) {
       try {
         linkId = uuidv4().replace(/-/g, "");
 
@@ -51,6 +55,8 @@ const addLink = async (req: Request, res: Response) => {
             "UNIQUE constraint failed: links.id"
           )
         ) {
+          attempts++;
+
           continue;
         } else {
           throw error;
@@ -67,7 +73,7 @@ const addLink = async (req: Request, res: Response) => {
         .status(201)
         .json({ message: "Link created successfully.", data: newLink });
     } else {
-      res.status(204).send();
+      res.status(400).json({ message: "No link created." });
     }
   } catch (error) {
     console.log(error);
@@ -94,10 +100,13 @@ const getLinks = async (req: Request, res: Response) => {
     const existingLinks = dbConfig.db
       .prepare(
         mode === "own"
-          ? `SELECT * FROM links WHERE user_id = ? AND (category_id = ? OR 1 = ?) AND name LIKE ?`
+          ? `SELECT * FROM links
+          WHERE user_id = ? AND (category_id = ? OR 1 = ?) AND name LIKE ?`
           : mode === "shared-unwritable"
-          ? `SELECT links.* FROM links WHERE id IN (SELECT link_id FROM shares WHERE user_id = ? AND is_writable = 0) AND (category_id = ? OR 1 = ?) AND name LIKE ?`
-          : `SELECT links.* FROM links WHERE id IN (SELECT link_id FROM shares WHERE user_id = ? AND is_writable = 1) AND (category_id = ? OR 1 = ?) AND name LIKE ?`
+          ? `SELECT links.* FROM links
+          WHERE id IN (SELECT link_id FROM shares WHERE user_id = ? AND is_writable = 0) AND (category_id = ? OR 1 = ?) AND name LIKE ?`
+          : `SELECT links.* FROM links
+          WHERE id IN (SELECT link_id FROM shares WHERE user_id = ? AND is_writable = 1) AND (category_id = ? OR 1 = ?) AND name LIKE ?`
       )
       .all(
         sessionUserId,
@@ -139,9 +148,9 @@ const removeLink = async (req: Request, res: Response) => {
     const result = stmt.run(linkId, sessionUserId);
 
     if (result.changes === 1) {
-      res.status(201).json({ message: "Link removed successfully." });
+      res.status(200).json({ message: "Link removed successfully." });
     } else {
-      res.status(204).send();
+      res.status(400).json({ message: "No link removed." });
     }
   } catch (error) {
     console.log(error);
@@ -170,7 +179,8 @@ const updateLink = async (req: Request, res: Response) => {
     }
 
     const stmt = dbConfig.db.prepare(
-      `UPDATE links SET category_id = ?, category_name = (SELECT name FROM categories WHERE id = ?), name = ?, url = ? WHERE id = ? AND (user_id = ? OR EXISTS (SELECT * FROM shares WHERE link_id = links.id AND user_id = ? AND is_writable = 1))`
+      `UPDATE links SET category_id = ?, category_name = (SELECT name FROM categories WHERE id = ?), name = ?, url = ?
+      WHERE id = ? AND (user_id = ? OR EXISTS (SELECT * FROM shares WHERE link_id = links.id AND user_id = ? AND is_writable = 1))`
     );
 
     stmt.run(
@@ -189,10 +199,10 @@ const updateLink = async (req: Request, res: Response) => {
 
     if (updatedLink) {
       res
-        .status(201)
+        .status(200)
         .json({ message: "Link updated successfully.", data: updatedLink });
     } else {
-      res.status(204).send();
+      res.status(400).json({ message: "No link updated." });
     }
   } catch (error) {
     console.log(error);

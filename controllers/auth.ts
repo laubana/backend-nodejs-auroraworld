@@ -167,7 +167,10 @@ const signUp = async (req: Request, res: Response) => {
 
     let userId;
 
-    while (true) {
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    while (attempts < maxAttempts) {
       try {
         userId = uuidv4().replace(/-/g, "");
 
@@ -192,6 +195,8 @@ const signUp = async (req: Request, res: Response) => {
             "UNIQUE constraint failed: users.id"
           )
         ) {
+          attempts++;
+
           continue;
         } else {
           throw error;

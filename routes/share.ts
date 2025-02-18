@@ -5,9 +5,10 @@ import verifyToken from "../middlewares/verifyToken";
 
 const router = express.Router();
 
-router.route("/shares").post(verifyToken, controller.addShare);
+router.route("/share").post(verifyToken, controller.addShare);
+router.route("/shares").post(verifyToken, controller.addShares);
 router.route("/shares/:linkId").get(verifyToken, controller.getShares);
-router.route("/shares/:shareId").delete(verifyToken, controller.removeShare);
-router.route("/shares/:shareId").put(verifyToken, controller.updateShare);
+router.route("/share/:shareId").delete(verifyToken, controller.removeShare);
+router.route("/share/:shareId").put(verifyToken, controller.updateShare);
 
 export default router;
