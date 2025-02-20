@@ -5,5 +5,4 @@ data.db
 /package-lock.json
 /yarn.lock
 
-/.vscode
 /node_modules

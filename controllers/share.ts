@@ -4,12 +4,13 @@ import { v4 as uuidv4 } from "uuid";
 import dbConfig from "../configs/dbConfig";
 import { Link } from "../types/Link";
 import { Share } from "../types/Share";
+import { User } from "../types/User";
 
 const addShare = async (req: Request, res: Response) => {
   try {
-    const { linkId, userId, isWritable } = req.body;
-    const sessionUserId = req.id;
-    const sessionUserEmail = req.email;
+    const linkId = req.body.linkId.trim();
+    const userId = req.body.userId.trim();
+    const isWritable = req.body.isWritable;
 
     if (!linkId || !userId) {
       res.status(400).json({ message: "Invalid Input" });
@@ -17,8 +18,31 @@ const addShare = async (req: Request, res: Response) => {
       return;
     }
 
+    const sessionUserId = req.id;
+    const sessionUserEmail = req.email;
+
     if (!sessionUserId || !sessionUserEmail) {
       res.status(401).json({ message: "Unauthorized" });
+
+      return;
+    }
+
+    const existingLink = dbConfig.db
+      .prepare(`SELECT * FROM links WHERE id = ?`)
+      .get(linkId) as Link;
+
+    if (!existingLink) {
+      res.status(400).json({ message: "Invalid Input" });
+
+      return;
+    }
+
+    const existingUser = dbConfig.db
+      .prepare(`SELECT * FROM users WHERE id = ?`)
+      .get(userId) as User;
+
+    if (!existingUser) {
+      res.status(400).json({ message: "Invalid Input" });
 
       return;
     }
@@ -30,7 +54,9 @@ const addShare = async (req: Request, res: Response) => {
 
     let shareId;
 
-    while (true) {
+    let attempts = 0;
+    const maxAttempts = 5;
+    while (attempts < maxAttempts) {
       try {
         shareId = uuidv4().replace(/-/g, "");
 
@@ -63,6 +89,8 @@ const addShare = async (req: Request, res: Response) => {
             "UNIQUE constraint failed: shares.id"
           )
         ) {
+          attempts++;
+
           continue;
         } else {
           throw error;
@@ -91,14 +119,15 @@ const addShare = async (req: Request, res: Response) => {
 const addShares = async (req: Request, res: Response) => {
   try {
     const { linkIds, userIds, isWritable } = req.body;
-    const sessionUserId = req.id;
-    const sessionUserEmail = req.email;
 
     if (!linkIds || linkIds.length <= 0 || !userIds || userIds.length <= 0) {
       res.status(400).json({ message: "Invalid Input" });
 
       return;
     }
+
+    const sessionUserId = req.id;
+    const sessionUserEmail = req.email;
 
     if (!sessionUserId || !sessionUserEmail) {
       res.status(401).json({ message: "Unauthorized" });
@@ -134,6 +163,8 @@ const addShares = async (req: Request, res: Response) => {
               );
 
               shareIds.push(shareId);
+
+              break;
             } catch (error) {
               console.error(error);
 
@@ -186,7 +217,15 @@ const addShares = async (req: Request, res: Response) => {
 
 const getShares = async (req: Request, res: Response) => {
   try {
-    const { linkId } = req.params;
+    const linkId =
+      typeof req.params.linkId === "string" ? req.params.linkId.trim() : "";
+
+    if (!linkId) {
+      res.status(400).json({ message: "Invalid Input" });
+
+      return;
+    }
+
     const sessionUserId = req.id;
     const sessionUserEmail = req.email;
 
@@ -213,15 +252,17 @@ const getShares = async (req: Request, res: Response) => {
 
 const removeShare = async (req: Request, res: Response) => {
   try {
-    const { shareId } = req.params;
-    const sessionUserId = req.id;
-    const sessionUserEmail = req.email;
+    const shareId =
+      typeof req.params.shareId === "string" ? req.params.shareId.trim() : "";
 
     if (!shareId) {
       res.status(400).json({ message: "Invalid Input" });
 
       return;
     }
+
+    const sessionUserId = req.id;
+    const sessionUserEmail = req.email;
 
     if (!sessionUserId || !sessionUserEmail) {
       res.status(401).json({ message: "Unauthorized" });
@@ -249,16 +290,18 @@ const removeShare = async (req: Request, res: Response) => {
 
 const updateShare = async (req: Request, res: Response) => {
   try {
-    const { shareId } = req.params;
-    const { isWritable } = req.body;
-    const sessionUserId = req.id;
-    const sessionUserEmail = req.email;
+    const shareId =
+      typeof req.params.shareId === "string" ? req.params.shareId.trim() : "";
+    const isWritable = req.body.isWritable;
 
-    if (!shareId || isWritable === undefined) {
+    if (!shareId) {
       res.status(400).json({ message: "Invalid Input" });
 
       return;
     }
+
+    const sessionUserId = req.id;
+    const sessionUserEmail = req.email;
 
     if (!sessionUserId || !sessionUserEmail) {
       res.status(401).json({ message: "Unauthorized" });

@@ -1,0 +1,31 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: backend-nodejs-auroraworld-dev
+    env_file:
+      - .env
+      - .env.development
+    ports:
+      - ${PORT}:${PORT}
+    volumes:
+      - ./:/app
+      - ./data.db:/app/data.db
+      - /app/node_modules
+    restart: always
+
+  prod:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: backend-nodejs-auroraworld-prod
+    env_file:
+      - .env
+      - .env.production
+    ports:
+      - ${PORT}:${PORT}
+    volumes:
+      - /app/node_modules
+      - ./data.db:/tmp/data.db
+    restart: always

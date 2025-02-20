@@ -1,0 +1,16 @@
+**/.DS_Store
+**/.env**
+
+/.dockerignore
+/docker-compose.yml
+/Dockerfile*
+
+/.git
+/.gitignore
+/README.md
+
+/vercel.json
+/package-lock.json
+/yarn.lock
+
+/node_modules

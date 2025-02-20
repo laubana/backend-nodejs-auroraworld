@@ -24,42 +24,55 @@ const refresh = (req: Request, res: Response) => {
       return;
     }
 
-    if (process.env.REFRESH_TOKEN_SECRET && process.env.ACCESS_TOKEN_SECRET) {
-      const result = jsonwebtoken.verify(
-        refreshToken,
-        process.env.REFRESH_TOKEN_SECRET
-      ) as jsonwebtoken.JwtPayload & User;
+    const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
+    const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
 
-      const existingUser = dbConfig.db
-        .prepare(`SELECT * FROM users WHERE id = ?`)
-        .get(result.id) as User;
+    if (!accessTokenSecret || !refreshTokenSecret) {
+      res.status(401).json({ message: "Sign-in failed." });
 
-      if (!existingUser) {
-        res.status(401).json({ message: "Refresh failed." });
-
-        return;
-      }
-
-      const accessToken = jsonwebtoken.sign(
-        {
-          id: existingUser.id,
-          email: existingUser.email,
-        },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "1d" }
-      );
-
-      res.status(200).json({
-        message: "Refreshed successfully.",
-        data: {
-          accessToken,
-          id: existingUser.id,
-          email: existingUser.email,
-        },
-      });
-    } else {
-      res.status(401).json({ message: "Refresh failed." });
+      return;
     }
+
+    const result = jsonwebtoken.verify(
+      refreshToken,
+      refreshTokenSecret
+    ) as jsonwebtoken.JwtPayload & User;
+
+    const userId = result.id;
+
+    if (!userId) {
+      res.status(401).json({ message: "Refresh failed." });
+
+      return;
+    }
+
+    const existingUser = dbConfig.db
+      .prepare(`SELECT * FROM users WHERE id = ?`)
+      .get(userId) as User;
+
+    if (!existingUser) {
+      res.status(401).json({ message: "Refresh failed." });
+
+      return;
+    }
+
+    const accessToken = jsonwebtoken.sign(
+      {
+        id: existingUser.id,
+        email: existingUser.email,
+      },
+      accessTokenSecret,
+      { expiresIn: "1d" }
+    );
+
+    res.status(200).json({
+      message: "Refreshed successfully.",
+      data: {
+        accessToken,
+        id: existingUser.id,
+        email: existingUser.email,
+      },
+    });
   } catch (error) {
     console.error(error);
 
@@ -69,7 +82,8 @@ const refresh = (req: Request, res: Response) => {
 
 const signIn = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const email = req.body.email.trim();
+    const password = req.body.password.trim();
 
     if (!email || !password) {
       res.status(400).json({ message: "Invalid Input" });
@@ -95,40 +109,45 @@ const signIn = async (req: Request, res: Response) => {
       return;
     }
 
-    if (process.env.REFRESH_TOKEN_SECRET && process.env.ACCESS_TOKEN_SECRET) {
-      const accessToken = jsonwebtoken.sign(
-        {
-          id: existingUser.id,
-          email: existingUser.email,
-        },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "1d" }
-      );
+    const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
+    const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
 
-      const refreshToken = jsonwebtoken.sign(
-        { id: existingUser.id, email: existingUser.email },
-        process.env.REFRESH_TOKEN_SECRET,
-        { expiresIn: "7d" }
-      );
-
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        sameSite: "none",
-        secure: true,
-      });
-
-      res.status(200).json({
-        message: "Signed in successfully.",
-        data: {
-          accessToken,
-          id: existingUser.id,
-          email: existingUser.email,
-        },
-      });
-    } else {
+    if (!accessTokenSecret || !refreshTokenSecret) {
       res.status(401).json({ message: "Sign-in failed." });
+
+      return;
     }
+
+    const accessToken = jsonwebtoken.sign(
+      {
+        id: existingUser.id,
+        email: existingUser.email,
+      },
+      accessTokenSecret,
+      { expiresIn: "1d" }
+    );
+
+    const refreshToken = jsonwebtoken.sign(
+      { id: existingUser.id, email: existingUser.email },
+      refreshTokenSecret,
+      { expiresIn: "7d" }
+    );
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: "none",
+      secure: true,
+    });
+
+    res.status(200).json({
+      message: "Signed in successfully.",
+      data: {
+        accessToken,
+        id: existingUser.id,
+        email: existingUser.email,
+      },
+    });
   } catch (error) {
     console.error(error);
 
@@ -150,10 +169,23 @@ const signOut = async (req: Request, res: Response) => {
 
 const signUp = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const email = req.body.email.trim();
+    const password = req.body.password.trim();
 
     if (!email || !password) {
       res.status(400).json({ message: "Invalid Input" });
+
+      return;
+    }
+
+    const existingUsers = dbConfig.db
+      .prepare(`SELECT * FROM users WHERE email = ?`)
+      .all(email) as User[];
+
+    if (existingUsers.length !== 0) {
+      res.status(409).json({
+        message: "User already exists.",
+      });
 
       return;
     }
@@ -169,7 +201,6 @@ const signUp = async (req: Request, res: Response) => {
 
     let attempts = 0;
     const maxAttempts = 5;
-
     while (attempts < maxAttempts) {
       try {
         userId = uuidv4().replace(/-/g, "");

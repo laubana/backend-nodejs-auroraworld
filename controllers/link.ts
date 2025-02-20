@@ -2,13 +2,14 @@ import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 
 import dbConfig from "../configs/dbConfig";
+import { Category } from "../types/Category";
 import { Link } from "../types/Link";
 
 const addLink = async (req: Request, res: Response) => {
   try {
-    const { categoryId, name, url } = req.body;
-    const sessionUserId = req.id;
-    const sessionUserEmail = req.email;
+    const categoryId = req.body.categoryId.trim();
+    const name = req.body.name.trim();
+    const url = req.body.url.trim();
 
     if (!categoryId || !name || !url) {
       res.status(400).json({ message: "Invalid Input" });
@@ -16,8 +17,21 @@ const addLink = async (req: Request, res: Response) => {
       return;
     }
 
+    const sessionUserId = req.id;
+    const sessionUserEmail = req.email;
+
     if (!sessionUserId || !sessionUserEmail) {
       res.status(401).json({ message: "Unauthorized" });
+
+      return;
+    }
+
+    const existingCategory = dbConfig.db
+      .prepare(`SELECT * FROM categories WHERE id = ?`)
+      .get(categoryId) as Category;
+
+    if (!existingCategory) {
+      res.status(400).json({ message: "Invalid Input" });
 
       return;
     }
@@ -31,7 +45,6 @@ const addLink = async (req: Request, res: Response) => {
 
     let attempts = 0;
     const maxAttempts = 5;
-
     while (attempts < maxAttempts) {
       try {
         linkId = uuidv4().replace(/-/g, "");
@@ -84,9 +97,14 @@ const addLink = async (req: Request, res: Response) => {
 
 const getLinks = async (req: Request, res: Response) => {
   try {
-    const mode = req.query.mode;
-    const categoryId = req.query.categoryId;
-    const name = req.query.name;
+    const mode =
+      typeof req.query.mode === "string" ? req.query.mode.trim() : "";
+    const categoryId =
+      typeof req.query.categoryId === "string"
+        ? req.query.categoryId.trim()
+        : "";
+    const name =
+      typeof req.query.name === "string" ? req.query.name.trim() : "";
 
     const sessionUserId = req.id;
     const sessionUserEmail = req.email;
@@ -125,15 +143,17 @@ const getLinks = async (req: Request, res: Response) => {
 
 const removeLink = async (req: Request, res: Response) => {
   try {
-    const { linkId } = req.params;
-    const sessionUserId = req.id;
-    const sessionUserEmail = req.email;
+    const linkId =
+      typeof req.params.linkId === "string" ? req.params.linkId.trim() : "";
 
     if (!linkId) {
       res.status(400).json({ message: "Invalid Input" });
 
       return;
     }
+
+    const sessionUserId = req.id;
+    const sessionUserEmail = req.email;
 
     if (!sessionUserId || !sessionUserEmail) {
       res.status(401).json({ message: "Unauthorized" });
@@ -161,10 +181,11 @@ const removeLink = async (req: Request, res: Response) => {
 
 const updateLink = async (req: Request, res: Response) => {
   try {
-    const { linkId } = req.params;
-    const { categoryId, name, url } = req.body;
-    const sessionUserId = req.id;
-    const sessionUserEmail = req.email;
+    const linkId =
+      typeof req.params.linkId === "string" ? req.params.linkId.trim() : "";
+    const categoryId = req.body.categoryId.trim();
+    const name = req.body.name.trim();
+    const url = req.body.url.trim();
 
     if (!linkId || !categoryId || !name || !url) {
       res.status(400).json({ message: "Invalid Input" });
@@ -172,8 +193,21 @@ const updateLink = async (req: Request, res: Response) => {
       return;
     }
 
+    const sessionUserId = req.id;
+    const sessionUserEmail = req.email;
+
     if (!sessionUserId || !sessionUserEmail) {
       res.status(401).json({ message: "Unauthorized" });
+
+      return;
+    }
+
+    const existingCategory = dbConfig.db
+      .prepare(`SELECT * FROM categories WHERE id = ?`)
+      .get(categoryId) as Category;
+
+    if (!existingCategory) {
+      res.status(400).json({ message: "Invalid Input" });
 
       return;
     }
