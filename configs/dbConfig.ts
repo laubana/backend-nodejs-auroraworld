@@ -9,14 +9,14 @@ const db =
 const initiate = () => {
   try {
     db.exec(`CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL
+      id VARCHAR(255) PRIMARY KEY,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL
     )`);
 
     db.exec(`CREATE TABLE IF NOT EXISTS categories (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE
+      id VARCHAR(255) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL UNIQUE
     )`);
 
     db.exec(
@@ -36,20 +36,20 @@ const initiate = () => {
     );
 
     db.exec(`CREATE TABLE IF NOT EXISTS links (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      created_by TEXT NOT NULL,
-      category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
-      category_name TEXT NOT NULL,
-      name TEXT NOT NULL,
-      url TEXT NOT NULL
+      id VARCHAR(255) PRIMARY KEY,
+      user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_by VARCHAR(255) NOT NULL,
+      category_id VARCHAR(255) NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+      category_name VARCHAR(255) NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      url VARCHAR(255) NOT NULL
     )`);
 
     db.exec(`CREATE TABLE IF NOT EXISTS shares (
-      id TEXT PRIMARY KEY,
-      link_id TEXT NOT NULL REFERENCES links(id) ON DELETE CASCADE,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      user_email TEXT NOT NULL,
+      id VARCHAR(255) PRIMARY KEY,
+      link_id VARCHAR(255) NOT NULL REFERENCES links(id) ON DELETE CASCADE,
+      user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_email VARCHAR(255) NOT NULL,
       is_writable BOOLEAN NOT NULL DEFAULT 0,
       UNIQUE (link_id, user_id)
     )`);
