@@ -15,4 +15,7 @@ In the root directory, you can run:
 ### `docker-compose up prod`
 
 The default port is set to 4000, and the default frontend endpoint is set to http://localhost:5173.
+
 The access token secret and refresh token secret must be provided.
+
+SQLite has been selected as the database due to its simple deployment, and the tables and data will be automatically created and populated.

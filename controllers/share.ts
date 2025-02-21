@@ -144,7 +144,23 @@ const addShares = async (req: Request, res: Response) => {
 
     const insertMany = dbConfig.db.transaction((linkIds, userIds) => {
       for (const linkId of linkIds) {
+        const existingLink = dbConfig.db
+          .prepare(`SELECT * FROM links WHERE id = ?`)
+          .get(linkId) as Link;
+
+        if (!existingLink) {
+          continue;
+        }
+
         for (const userId of userIds) {
+          const existingUser = dbConfig.db
+            .prepare(`SELECT * FROM users WHERE id = ?`)
+            .get(userId) as User;
+
+          if (!existingUser) {
+            continue;
+          }
+
           let attempts = 0;
           const maxAttempts = 5;
 
@@ -276,7 +292,7 @@ const removeShare = async (req: Request, res: Response) => {
 
     const result = stmt.run(shareId, sessionUserId);
 
-    if (result.changes === 1) {
+    if (0 < result.changes) {
       res.status(200).json({ message: "Share removed successfully." });
     } else {
       res.status(400).json({ message: "No share removed." });
@@ -314,13 +330,13 @@ const updateShare = async (req: Request, res: Response) => {
       WHERE id = ? AND EXISTS (SELECT * FROM links WHERE id = shares.link_id AND user_id = ?)`
     );
 
-    stmt.run(isWritable ? 1 : 0, shareId, sessionUserId);
+    const result = stmt.run(isWritable ? 1 : 0, shareId, sessionUserId);
 
     const updatedShare = dbConfig.db
       .prepare(`SELECT * FROM shares WHERE id = ?`)
       .get(shareId) as Link;
 
-    if (updatedShare) {
+    if (0 < result.changes && updatedShare) {
       res
         .status(200)
         .json({ message: "Share updated successfully.", data: updatedShare });

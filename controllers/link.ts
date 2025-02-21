@@ -167,7 +167,7 @@ const removeLink = async (req: Request, res: Response) => {
 
     const result = stmt.run(linkId, sessionUserId);
 
-    if (result.changes === 1) {
+    if (0 < result.changes) {
       res.status(200).json({ message: "Link removed successfully." });
     } else {
       res.status(400).json({ message: "No link removed." });
@@ -217,7 +217,7 @@ const updateLink = async (req: Request, res: Response) => {
       WHERE id = ? AND (user_id = ? OR EXISTS (SELECT * FROM shares WHERE link_id = links.id AND user_id = ? AND is_writable = 1))`
     );
 
-    stmt.run(
+    const result = stmt.run(
       categoryId,
       categoryId,
       name,
@@ -231,7 +231,7 @@ const updateLink = async (req: Request, res: Response) => {
       .prepare(`SELECT * FROM links WHERE id = ?`)
       .get(linkId) as Link;
 
-    if (updatedLink) {
+    if (0 < result.changes && updatedLink) {
       res
         .status(200)
         .json({ message: "Link updated successfully.", data: updatedLink });

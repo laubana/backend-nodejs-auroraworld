@@ -8,15 +8,7 @@ import { User } from "../types/User";
 
 const refresh = (req: Request, res: Response) => {
   try {
-    const cookies = req.cookies;
-
-    if (!cookies?.refreshToken) {
-      res.status(401).json({ message: "Refresh failed." });
-
-      return;
-    }
-
-    const refreshToken = cookies.refreshToken;
+    const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
       res.status(401).json({ message: "Refresh failed." });
@@ -39,8 +31,9 @@ const refresh = (req: Request, res: Response) => {
     ) as jsonwebtoken.JwtPayload & User;
 
     const userId = result.id;
+    const email = result.email;
 
-    if (!userId) {
+    if (!userId || !email) {
       res.status(401).json({ message: "Refresh failed." });
 
       return;
@@ -239,10 +232,14 @@ const signUp = async (req: Request, res: Response) => {
       .prepare(`SELECT * FROM users WHERE id = ?`)
       .get(userId) as User;
 
-    res.status(201).json({
-      message: "User created successfully.",
-      data: { ...newUser, password: "" },
-    });
+    if (newUser) {
+      res.status(201).json({
+        message: "User created successfully.",
+        data: { ...newUser, password: "" },
+      });
+    } else {
+      res.status(400).json({ message: "No user created." });
+    }
   } catch (error) {
     console.log(error);
 
