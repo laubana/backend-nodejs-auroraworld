@@ -4,7 +4,7 @@ import path from "path";
 const db =
   process.env.NODE_ENV === "production"
     ? new Database(path.join("/", "tmp", "data.db"))
-    : new Database(path.join(__dirname, "..", "data.db"));
+    : new Database(path.join(__dirname, "../", "data.db"));
 
 const initiate = () => {
   try {

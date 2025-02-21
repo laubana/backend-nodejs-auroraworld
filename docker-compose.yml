@@ -4,24 +4,24 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     image: backend-nodejs-auroraworld-dev
-    env_file:
-      - .env
     ports:
       - ${PORT:-4000}:${PORT:-4000}
     volumes:
       - ./:/app
       - /app/node_modules
     restart: always
+    environment:
+      - NODE_ENV=development
 
   prod:
     build:
       context: .
       dockerfile: Dockerfile.prod
     image: backend-nodejs-auroraworld-prod
-    env_file:
-      - .env
     ports:
       - ${PORT:-4000}:${PORT:-4000}
     volumes:
       - /app/node_modules
     restart: always
+    environment:
+      - NODE_ENV=production

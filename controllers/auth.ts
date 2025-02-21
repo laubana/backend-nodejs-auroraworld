@@ -16,14 +16,10 @@ const refresh = (req: Request, res: Response) => {
       return;
     }
 
-    const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
-    const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
-
-    if (!accessTokenSecret || !refreshTokenSecret) {
-      res.status(401).json({ message: "Sign-in failed." });
-
-      return;
-    }
+    const accessTokenSecret =
+      process.env.ACCESS_TOKEN_SECRET || "9aq~&_8F<Qq=>EZzwhWFE=DJ$dI+<T";
+    const refreshTokenSecret =
+      process.env.REFRESH_TOKEN_SECRET || "DaL0`oWAXQ.z|uLPf6rBwYS$^CRyV8";
 
     const result = jsonwebtoken.verify(
       refreshToken,
@@ -102,14 +98,10 @@ const signIn = async (req: Request, res: Response) => {
       return;
     }
 
-    const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
-    const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
-
-    if (!accessTokenSecret || !refreshTokenSecret) {
-      res.status(401).json({ message: "Sign-in failed." });
-
-      return;
-    }
+    const accessTokenSecret =
+      process.env.ACCESS_TOKEN_SECRET || "9aq~&_8F<Qq=>EZzwhWFE=DJ$dI+<T";
+    const refreshTokenSecret =
+      process.env.REFRESH_TOKEN_SECRET || "DaL0`oWAXQ.z|uLPf6rBwYS$^CRyV8";
 
     const accessToken = jsonwebtoken.sign(
       {
