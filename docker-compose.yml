@@ -6,12 +6,10 @@ services:
     image: backend-nodejs-auroraworld-dev
     env_file:
       - .env
-      - .env.development
     ports:
       - ${PORT:-4000}:${PORT:-4000}
     volumes:
       - ./:/app
-      - ./data.db:/app/data.db
       - /app/node_modules
     restart: always
 
@@ -22,10 +20,8 @@ services:
     image: backend-nodejs-auroraworld-prod
     env_file:
       - .env
-      - .env.production
     ports:
       - ${PORT:-4000}:${PORT:-4000}
     volumes:
       - /app/node_modules
-      - ./data.db:/tmp/data.db
     restart: always
