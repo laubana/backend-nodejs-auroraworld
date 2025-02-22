@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     image: backend-nodejs-auroraworld-dev
+    env_file: .env
     ports:
       - ${PORT:-4000}:${PORT:-4000}
     volumes:
@@ -18,6 +19,7 @@ services:
       context: .
       dockerfile: Dockerfile.prod
     image: backend-nodejs-auroraworld-prod
+    env_file: .env
     ports:
       - ${PORT:-4000}:${PORT:-4000}
     volumes:
